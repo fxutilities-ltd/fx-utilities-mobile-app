@@ -23,8 +23,8 @@ This is a one-time admin task.
 2. Name it something like `FX Utilities Mobile App`.
 3. Under **Supported account types**, choose "Accounts in this organizational directory only" (single tenant), unless you need multi-tenant.
 4. Under **Redirect URI**, choose platform **"Mobile and desktop applications"** and add:
-   - `msauth.co.uk.fxutilities.mobileapp://auth` (iOS — adjust if you change the bundle ID in `app.json`)
-   - The Android redirect URI, which depends on your app's signing certificate hash — `react-native-msal`'s docs (https://github.com/stashenergy/react-native-msal#configuration) show exactly how to generate this with `keytool`. Add it to `appConfig.ts` and to this app registration once generated.
+   - `msauth.co.uk.fxutilities.mobileapp://auth` (adjust if you change the bundle ID / package name in `app.json`)
+   - That's the only redirect URI needed — unlike some Microsoft-specific auth libraries, this project's library (`react-native-app-auth`) uses the same plain custom URL scheme on both iOS and Android, so there's no separate Android signature-hash value to generate.
 5. Register the app, then copy the **Application (client) ID** and **Directory (tenant) ID** from the Overview page into `src/config/appConfig.ts`.
 6. Go to **API permissions → Add a permission → Microsoft Graph → Delegated permissions**, and add:
    - `User.Read`
@@ -57,11 +57,20 @@ values from steps 1 and 2.
 npm install
 ```
 
+Then double-check the two auth-related packages are the exact versions Expo
+wants for your installed SDK (safer than trusting any hardcoded version
+number, including the ones in this starter):
+
+```bash
+npx expo install react-native-app-auth expo-secure-store
+```
+
 ## 5. Why you need a dev client (not Expo Go)
 
-`react-native-msal` uses native Microsoft Authentication Library code, which
-Expo Go doesn't include. You need a custom **development build** instead —
-this is a one-time extra step, not a different framework.
+`react-native-app-auth` uses native code (via each platform's system browser,
+through Apple's AppAuth-iOS and Google's AppAuth-Android libraries under the
+hood), which Expo Go doesn't include. You need a custom **development
+build** instead — this is a one-time extra step, not a different framework.
 
 ```bash
 eas login
@@ -89,18 +98,31 @@ and open the app from your dev build (not Expo Go).
 
 ```
 App.tsx                          Root component, decides Login vs main app
+plugins/withAzureAuth.js         Our own small Expo config plugin (registers the login redirect URL scheme)
 src/config/appConfig.ts          All tenant-specific IDs and scopes (fill in TODOs)
-src/auth/authConfig.ts           MSAL client setup
-src/auth/AuthContext.tsx         React context: sign-in/out, token access
+src/auth/authConfig.ts           react-native-app-auth OAuth/OIDC config
+src/auth/AuthContext.tsx         React context: sign-in/out, token storage, silent refresh
 src/services/graphService.ts     Microsoft Graph calls for both SharePoint lists
 src/navigation/AppNavigator.tsx  Bottom-tab navigation
 src/screens/                     LoginScreen, HomeScreen, AnnualLeaveScreen, PurchaseOrdersScreen
 ```
+
+## A note on why this isn't using MSAL
+
+The first version of this starter used Microsoft's `react-native-msal` library.
+While testing setup, we found its Expo config plugin crashes silently with
+current Expo tooling — and it turns out the underlying project is no longer
+actively maintained. Rather than fight an unmaintained dependency, this
+version uses `react-native-app-auth` (actively maintained, explicitly tested
+against Azure AD/Entra ID) plus a small config plugin we wrote ourselves
+(`plugins/withAzureAuth.js`) instead of relying on a third party's. Sign-in
+still goes through the same Microsoft login page and Entra ID app
+registration — nothing about the Entra ID admin setup changes.
 
 ## Next steps beyond this starter
 
 - Add proper date pickers instead of free-text date fields on the leave request form.
 - Add pull-to-refresh error states / offline handling.
 - Consider push notifications for approvals (see ARCHITECTURE.md §8).
-- Add app icons/splash screen assets under `assets/` (referenced in `app.json` but not included here).
+- Replace `assets/icon.png` and `assets/adaptive-icon.png` with real branded artwork — these are just simple placeholder images for now (they had to exist for the build to succeed at all, but they're not final).
 - Decide on internal distribution (TestFlight / Google Play internal testing, or MDM-based enterprise distribution) before rolling out beyond a pilot group.
