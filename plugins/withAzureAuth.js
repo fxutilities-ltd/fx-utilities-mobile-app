@@ -1,5 +1,20 @@
 const { withInfoPlist, withAppBuildGradle } = require("@expo/config-plugins");
 
+/**
+ * A small, self-contained Expo config plugin that wires up the custom URL
+ * scheme react-native-app-auth needs to receive the redirect back from the
+ * Microsoft sign-in page, on both iOS and Android.
+ *
+ * We wrote this ourselves (rather than depending on a third-party package's
+ * plugin) because react-native-app-auth doesn't ship one, and hand-rolling
+ * this is far more reliable than trusting an unmaintained dependency's
+ * plugin code — see ARCHITECTURE.md for the story on why.
+ *
+ * Usage in app.json:
+ *   "plugins": [
+ *     ["./plugins/withAzureAuth.js", { "redirectUrlScheme": "msauth.co.uk.fxutilities.mobileapp" }]
+ *   ]
+ */
 function withAzureAuth(config, { redirectUrlScheme }) {
   if (!redirectUrlScheme) {
     throw new Error(
@@ -7,6 +22,7 @@ function withAzureAuth(config, { redirectUrlScheme }) {
     );
   }
 
+  // --- iOS: register the URL scheme in Info.plist ---
   config = withInfoPlist(config, (config) => {
     config.modResults.CFBundleURLTypes = [
       ...(config.modResults.CFBundleURLTypes || []),
@@ -18,6 +34,12 @@ function withAzureAuth(config, { redirectUrlScheme }) {
   config = withAppBuildGradle(config, (config) => {
     let contents = config.modResults.contents;
 
+    // --- Android: react-native-app-auth ships its own RedirectUriReceiverActivity
+    // with an intent-filter that references a Gradle manifest placeholder called
+    // appAuthRedirectScheme — this is the library's documented way of wiring up
+    // the redirect scheme on Android (see FormidableLabs/react-native-app-auth
+    // README, "Android setup"). Without this, the build fails at manifest-merge
+    // time with "requires a placeholder substitution but no value ... is provided".
     if (!contents.includes("appAuthRedirectScheme")) {
       contents = contents.replace(
         /(defaultConfig\s*\{)/,
@@ -25,9 +47,22 @@ function withAzureAuth(config, { redirectUrlScheme }) {
       );
     }
 
-    if (!contents.includes("androidx.browser:browser:1.5.0")) {
-      contents += `\nconfigurations.all {\n    resolutionStrategy {\n        force "androidx.browser:browser:1.5.0"\n    }\n}\n`;
-    }
+    // NOTE: we do NOT force a specific androidx.browser version here (we
+    // tried that — see git history / ARCHITECTURE.md §3 — and it caused a
+    // runtime crash instead). react-native-app-auth@8.4.0+ bumped its own
+    // dependency to androidx.browser:browser:1.9.0 and started calling
+    // CustomTabsIntent.Builder#setEphemeralBrowsingEnabled(), a method that
+    // only exists in that newer androidx.browser version. Forcing an older
+    // browser version down (e.g. 1.5.0) lets the build compile, but crashes
+    // at runtime with "No virtual method setEphemeralBrowsingEnabled..."
+    // because the library's own compiled code calls a method the forced-down
+    // version doesn't have. androidx.browser 1.9.0 itself requires compileSdk
+    // 36 / Android Gradle Plugin 8.9.1+, which this Expo SDK's toolchain
+    // (compileSdk 34) doesn't support without a much bigger upgrade. So
+    // instead we pin react-native-app-auth itself to 8.3.0 in package.json —
+    // the last release before the androidx.browser 1.9.0 requirement was
+    // introduced — which brings its own compatible, older androidx.browser
+    // dependency automatically. No forcing needed.
 
     config.modResults.contents = contents;
     return config;
