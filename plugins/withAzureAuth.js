@@ -1,20 +1,5 @@
-const { withInfoPlist, withAndroidManifest } = require("@expo/config-plugins");
+const { withInfoPlist, withAndroidManifest, withAppBuildGradle } = require("@expo/config-plugins");
 
-/**
- * A small, self-contained Expo config plugin that registers the custom URL
- * scheme react-native-app-auth needs to receive the redirect back from the
- * Microsoft sign-in page, on both iOS and Android.
- *
- * We wrote this ourselves (rather than depending on a third-party package's
- * plugin) because react-native-app-auth doesn't ship one, and hand-rolling
- * this ~30-line plugin is far more reliable than trusting an unmaintained
- * dependency's plugin code — see ARCHITECTURE.md for the story on why.
- *
- * Usage in app.json:
- *   "plugins": [
- *     ["./plugins/withAzureAuth.js", { "redirectUrlScheme": "msauth.co.uk.fxutilities.mobileapp" }]
- *   ]
- */
 function withAzureAuth(config, { redirectUrlScheme }) {
   if (!redirectUrlScheme) {
     throw new Error(
@@ -22,7 +7,6 @@ function withAzureAuth(config, { redirectUrlScheme }) {
     );
   }
 
-  // --- iOS: register the URL scheme in Info.plist ---
   config = withInfoPlist(config, (config) => {
     config.modResults.CFBundleURLTypes = [
       ...(config.modResults.CFBundleURLTypes || []),
@@ -31,7 +15,6 @@ function withAzureAuth(config, { redirectUrlScheme }) {
     return config;
   });
 
-  // --- Android: register an intent filter on MainActivity in AndroidManifest.xml ---
   config = withAndroidManifest(config, (config) => {
     const mainApplication = config.modResults.manifest.application?.[0];
     const mainActivity = mainApplication?.activity?.find(
@@ -50,6 +33,14 @@ function withAzureAuth(config, { redirectUrlScheme }) {
       });
     }
 
+    return config;
+  });
+
+  config = withAppBuildGradle(config, (config) => {
+    const forceBlock = `\nconfigurations.all {\n    resolutionStrategy {\n        force "androidx.browser:browser:1.5.0"\n    }\n}\n`;
+    if (!config.modResults.contents.includes("androidx.browser:browser")) {
+      config.modResults.contents += forceBlock;
+    }
     return config;
   });
 

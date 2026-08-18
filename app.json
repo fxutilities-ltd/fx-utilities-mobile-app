@@ -27,7 +27,10 @@
       }
     },
     "plugins": [
-      "react-native-app-auth",
+      [
+        "./plugins/withAzureAuth.js",
+        { "redirectUrlScheme": "msauth.co.uk.fxutilities.mobileapp" }
+      ],
       "expo-secure-store"
     ],
     "extra": {
