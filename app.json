@@ -11,11 +11,7 @@
       "supportsTablet": true,
       "infoPlist": {
         "CFBundleURLTypes": [
-          {
-            "CFBundleURLSchemes": [
-              "msauth.co.uk.fxutilities.mobileapp"
-            ]
-          }
+          { "CFBundleURLSchemes": ["msauth.co.uk.fxutilities.mobileapp"] }
         ]
       }
     },
@@ -26,17 +22,15 @@
         "backgroundColor": "#ffffff"
       }
     },
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "plugins": [
-      [
-        "./plugins/withAzureAuth.js",
-        { "redirectUrlScheme": "msauth.co.uk.fxutilities.mobileapp" }
-      ],
+      ["./plugins/withAzureAuth.js", { "redirectUrlScheme": "msauth.co.uk.fxutilities.mobileapp" }],
       "expo-secure-store"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "aafbc4db-65d1-4f2d-a38d-492c9015dd5a"
-      }
-    }
+    "extra": { "eas": { "projectId": "aafbc4db-65d1-4f2d-a38d-492c9015dd5a" } }
   }
 }
