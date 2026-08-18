@@ -1,4 +1,4 @@
-const { withInfoPlist, withAppBuildGradle } = require("@expo/config-plugins");
+const { withInfoPlist, withAppBuildGradle, withAndroidManifest } = require("@expo/config-plugins");
 
 /**
  * A small, self-contained Expo config plugin that wires up the custom URL
@@ -65,6 +65,30 @@ function withAzureAuth(config, { redirectUrlScheme }) {
     // dependency automatically. No forcing needed.
 
     config.modResults.contents = contents;
+    return config;
+  });
+
+  // --- Android: force MainActivity's launchMode to "singleTask" ---
+  // This is Expo's own default for exactly this reason, but we set it
+  // explicitly here as a safeguard rather than trusting it stays that way.
+  // Without singleTask, when Chrome hands control back to the app after the
+  // Microsoft login redirect, Android can spin up a BRAND NEW instance of
+  // MainActivity instead of returning to the one that's actually waiting for
+  // the sign-in result. That new instance boots up fresh (signed out, as if
+  // the app just launched), while the original instance — still holding the
+  // in-progress sign-in — is orphaned and never resolves or rejects. The
+  // symptom is exactly "sign-in appears to work, then it's back at the login
+  // screen" with no error at all, because nothing ever actually throws.
+  // singleTask ensures the redirect is delivered to the existing instance
+  // via onNewIntent instead of creating a new one.
+  config = withAndroidManifest(config, (config) => {
+    const application = config.modResults.manifest.application?.[0];
+    const mainActivity = application?.activity?.find((activity) =>
+      activity["$"]?.["android:name"]?.endsWith("MainActivity")
+    );
+    if (mainActivity) {
+      mainActivity["$"]["android:launchMode"] = "singleTask";
+    }
     return config;
   });
 
