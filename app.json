@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "FX Utilities",
+    "slug": "fx-utilities-mobile-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "co.uk.fxutilities.mobileapp",
+      "supportsTablet": true,
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "msauth.co.uk.fxutilities.mobileapp"
+            ]
+          }
+        ]
+      }
+    },
+    "android": {
+      "package": "co.uk.fxutilities.mobileapp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      "react-native-app-auth",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "aafbc4db-65d1-4f2d-a38d-492c9015dd5a"
+      }
+    }
+  }
+}
