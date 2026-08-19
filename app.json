@@ -6,14 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "scheme": "msauth.co.uk.fxutilities.mobileapp",
     "ios": {
       "bundleIdentifier": "co.uk.fxutilities.mobileapp",
-      "supportsTablet": true,
-      "infoPlist": {
-        "CFBundleURLTypes": [
-          { "CFBundleURLSchemes": ["msauth.co.uk.fxutilities.mobileapp"] }
-        ]
-      }
+      "supportsTablet": true
     },
     "android": {
       "package": "co.uk.fxutilities.mobileapp",
@@ -28,9 +24,12 @@
       "backgroundColor": "#ffffff"
     },
     "plugins": [
-      ["./plugins/withAzureAuth.js", { "redirectUrlScheme": "msauth.co.uk.fxutilities.mobileapp" }],
       "expo-secure-store"
     ],
-    "extra": { "eas": { "projectId": "aafbc4db-65d1-4f2d-a38d-492c9015dd5a" } }
+    "extra": {
+      "eas": {
+        "projectId": "aafbc4db-65d1-4f2d-a38d-492c9015dd5a"
+      }
+    }
   }
 }
