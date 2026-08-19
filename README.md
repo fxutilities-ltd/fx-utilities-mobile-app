@@ -62,8 +62,10 @@ wants for your installed SDK (safer than trusting any hardcoded version
 number, including the ones in this starter):
 
 ```bash
-npx expo install expo-auth-session expo-web-browser expo-secure-store
+npx expo install expo-auth-session expo-web-browser expo-secure-store expo-dev-client
 ```
+
+(`expo-dev-client` needs to be an actual installed dependency, not just something EAS infers from the build profile — without it, `eas build --profile development` fails at the very start with "you don't have expo-dev-client installed for your project.")
 
 ## 5. Why you need a dev client (not Expo Go)
 
