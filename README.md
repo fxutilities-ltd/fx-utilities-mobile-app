@@ -95,17 +95,25 @@ and open the app from your dev build (not Expo Go).
 - The Annual Leave and Purchase Orders tabs will error until the `TODO`s in
   `appConfig.ts` and the field names in `graphService.ts` are filled in with
   your real site/list/column details — that's expected for a fresh checkout.
+- Tapping any leave request or PO in the list opens a detail screen showing
+  every real field from that SharePoint list (not just the few shown in the
+  list row), and lets you edit and save changes back to SharePoint. There's
+  no separate "approver" role in the app yet — anyone signed in can edit any
+  field, including the approval ones, so this relies on trust within the
+  team rather than the app itself gatekeeping who can approve what.
 
 ## Project structure
 
 ```
-App.tsx                          Root component, decides Login vs main app
-src/config/appConfig.ts          All tenant-specific IDs and scopes (fill in TODOs)
-src/auth/authConfig.ts           expo-auth-session OAuth/OIDC discovery + redirect URI config
-src/auth/AuthContext.tsx         React context: sign-in/out, token storage, silent refresh
-src/services/graphService.ts     Microsoft Graph calls for both SharePoint lists
-src/navigation/AppNavigator.tsx  Bottom-tab navigation
-src/screens/                     LoginScreen, HomeScreen, AnnualLeaveScreen, PurchaseOrdersScreen
+App.tsx                                    Root component, decides Login vs main app
+src/config/appConfig.ts                    All tenant-specific IDs and scopes (fill in TODOs)
+src/auth/authConfig.ts                     expo-auth-session OAuth/OIDC discovery + redirect URI config
+src/auth/AuthContext.tsx                   React context: sign-in/out, token storage, silent refresh
+src/services/graphService.ts               Microsoft Graph calls for both SharePoint lists
+src/navigation/AppNavigator.tsx            Bottom tabs, each wrapping a list -> detail stack
+src/screens/                               LoginScreen, HomeScreen,
+                                            AnnualLeaveScreen + LeaveRequestDetailScreen,
+                                            PurchaseOrdersScreen + PurchaseOrderDetailScreen
 ```
 
 ## A note on the sign-in library's history
@@ -136,7 +144,8 @@ changes.
 
 ## Next steps beyond this starter
 
-- Add proper date pickers instead of free-text date fields on the leave request form.
+- Add proper date pickers instead of free-text date fields (leave request form and both detail screens).
+- Add a real approver role/permission model — right now anyone signed in can edit any field on any leave request or PO, including the approval fields, since the app has no concept of "approver" vs "requester" yet.
 - Add pull-to-refresh error states / offline handling.
 - Consider push notifications for approvals (see ARCHITECTURE.md §8).
 - Replace `assets/icon.png` and `assets/adaptive-icon.png` with real branded artwork — these are just simple placeholder images for now (they had to exist for the build to succeed at all, but they're not final).
