@@ -8,28 +8,37 @@
 export const appConfig = {
   // --- From your Entra ID app registration (see README §1) ---
   // Directory (tenant) ID, e.g. "11111111-2222-3333-4444-555555555555"
-  tenantId: "ac15f2cd-eead-4c3f-9cf5-999e316fbb4d",
+  tenantId: "TODO_TENANT_ID",
 
   // Application (client) ID of the app you registered, e.g. "66666666-7777-8888-9999-aaaaaaaaaaaa"
-  clientId: "8687cba5-12f4-4038-bc79-50dcebf5f94e",
+  clientId: "TODO_CLIENT_ID",
 
-  // Must match the bundle identifier / package name in app.json
-  iosRedirectUri: "msauth.co.uk.fxutilities.mobileapp://auth",
-  androidRedirectUri: "msauth://co.uk.fxutilities.mobileapp/CALLBACK_SIGNATURE_HASH_HERE",
+  // The custom URL scheme registered in Entra ID's "Mobile and desktop
+  // applications" redirect URI, and in app.json's top-level "scheme"
+  // field (they must all match exactly).
+  redirectUri: "msauth.co.uk.fxutilities.mobileapp://auth",
 
-  // --- Graph scopes requested at sign-in ---
-  // Sites.Selected is recommended for production (admin grants access to just
-  // the two sites below). Sites.Read.Write.All is broader and simpler to get
-  // started with while you're prototyping. See README §2.
-  graphScopes: ["User.Read", "Sites.Read.Write.All"],
+  // --- Scopes requested at sign-in ---
+  // openid/profile/offline_access are needed regardless of provider;
+  // offline_access is what makes Microsoft issue a refresh token so the
+  // user isn't forced to log in again every time the access token expires.
+  // Sites.ReadWrite.All is the simplest to start with — switch to the
+  // narrower Sites.Selected for production (see ARCHITECTURE.md §6).
+  graphScopes: [
+    "openid",
+    "profile",
+    "offline_access",
+    "https://graph.microsoft.com/User.Read",
+    "https://graph.microsoft.com/Sites.ReadWrite.All",
+  ],
 
-  // --- SharePoint site + list IDs (see README §3 for how to find these) ---
+  // --- SharePoint site + list IDs (already looked up via Graph Explorer) ---
   annualLeave: {
-    siteId: "fxutilities.sharepoint.com,36a40bac-cf7e-47c4-bea8-98233cad5ba8,819e8bd7-ae4b-411f-8044-eb4ee048527b", // e.g. "contoso.sharepoint.com,GUID,GUID"
-    listId: "7892333b-0a2d-4819-a4c9-8d46900fea58",
+    siteId: "fxutilities.sharepoint.com,36a40bac-cf7e-47c4-bea8-98233cad5ba8,819e8bd7-ae4b-411f-8044-eb4ee048527b",
+    listId: "7892333b-0a2d-4819-a4c9-8d46900fea58", // "Leave Requests" list
   },
   purchaseOrders: {
     siteId: "fxutilities.sharepoint.com,e15c6b05-ef62-4769-a157-a8c9afa86e77,819e8bd7-ae4b-411f-8044-eb4ee048527b",
-    listId: "ee10bf21-c1de-4954-8a35-5d6a22e60314",
+    listId: "ee10bf21-c1de-4954-8a35-5d6a22e60314", // "Purchase Orders" list
   },
 };
