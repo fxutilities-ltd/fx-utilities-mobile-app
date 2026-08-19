@@ -68,19 +68,31 @@ function withAzureAuth(config, { redirectUrlScheme }) {
     return config;
   });
 
-  // --- Android: force MainActivity's launchMode to "singleTask" ---
-  // This is Expo's own default for exactly this reason, but we set it
-  // explicitly here as a safeguard rather than trusting it stays that way.
-  // Without singleTask, when Chrome hands control back to the app after the
-  // Microsoft login redirect, Android can spin up a BRAND NEW instance of
-  // MainActivity instead of returning to the one that's actually waiting for
-  // the sign-in result. That new instance boots up fresh (signed out, as if
-  // the app just launched), while the original instance — still holding the
-  // in-progress sign-in — is orphaned and never resolves or rejects. The
-  // symptom is exactly "sign-in appears to work, then it's back at the login
-  // screen" with no error at all, because nothing ever actually throws.
-  // singleTask ensures the redirect is delivered to the existing instance
-  // via onNewIntent instead of creating a new one.
+  // --- Android: force MainActivity's launchMode to "singleTask", and make
+  // it handle configuration changes itself instead of letting Android
+  // recreate it ---
+  //
+  // singleTask (Expo's own default, set explicitly here as a safeguard) makes
+  // sure the OAuth redirect is delivered to the existing MainActivity
+  // instance via onNewIntent rather than spinning up a brand new one.
+  //
+  // configChanges is the fix for a DIFFERENT, narrower problem confirmed via
+  // diagnostic logging: Chrome on Android 12+ can show the Microsoft sign-in
+  // page as a "partial height" bottom-sheet Custom Tab rather than full
+  // screen, which actually resizes the calling app's own window behind it.
+  // If MainActivity doesn't declare that it handles that resize itself,
+  // Android destroys and recreates the whole Activity in response — with a
+  // FRESH component tree (signed out, as if just launched) — while the
+  // original instance, still awaiting the sign-in result deep inside
+  // react-native-app-auth's authorize(), is orphaned: it still resolves
+  // successfully in the background, but nothing is left on screen to receive
+  // that result. This is a known, unresolved upstream limitation of
+  // react-native-app-auth on Android (see
+  // https://github.com/FormidableLabs/react-native-app-auth/issues/773) —
+  // the library has no way to recover a lost in-flight sign-in itself, so the
+  // fix has to be preventing the recreation from happening in the first
+  // place. Declaring the relevant configChanges tells Android "I'll handle
+  // this resize myself" instead of tearing the Activity down.
   config = withAndroidManifest(config, (config) => {
     const application = config.modResults.manifest.application?.[0];
     const mainActivity = application?.activity?.find((activity) =>
@@ -88,6 +100,25 @@ function withAzureAuth(config, { redirectUrlScheme }) {
     );
     if (mainActivity) {
       mainActivity["$"]["android:launchMode"] = "singleTask";
+
+      const requiredConfigChanges = [
+        "keyboardHidden",
+        "orientation",
+        "screenSize",
+        "screenLayout",
+        "uiMode",
+        "smallestScreenSize",
+        "density",
+        "fontScale",
+        "layoutDirection",
+        "colorMode",
+      ];
+      const existing = (mainActivity["$"]["android:configChanges"] || "")
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const merged = Array.from(new Set([...existing, ...requiredConfigChanges]));
+      mainActivity["$"]["android:configChanges"] = merged.join("|");
     }
     return config;
   });
