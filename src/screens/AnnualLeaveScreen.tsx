@@ -8,13 +8,19 @@ import {
   TextInput,
   RefreshControl,
   Alert,
+  Pressable,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../auth/AuthContext";
 import { getLeaveRequests, submitLeaveRequest, LeaveRequest } from "../services/graphService";
+import type { AnnualLeaveStackParamList } from "../navigation/AppNavigator";
+
+type NavigationProp = NativeStackNavigationProp<AnnualLeaveStackParamList, "AnnualLeaveList">;
 
 export default function AnnualLeaveScreen() {
   const { getAccessToken } = useAuth();
+  const navigation = useNavigation<NavigationProp>();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [startDate, setStartDate] = useState("");
@@ -29,6 +35,8 @@ export default function AnnualLeaveScreen() {
     }
   }, [getAccessToken]);
 
+  // Also refreshes whenever this screen comes back into focus — e.g. after
+  // saving changes on a request's detail screen and navigating back.
   useFocusEffect(
     useCallback(() => {
       load();
@@ -74,17 +82,26 @@ export default function AnnualLeaveScreen() {
       <Button title="Submit request" onPress={onSubmit} />
 
       <Text style={[styles.heading, { marginTop: 24 }]}>Your requests</Text>
+      <Text style={styles.hint}>Tap a request to view or edit its details.</Text>
       <FlatList
         data={requests}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Text style={styles.rowTitle}>
-              {item.startDate} → {item.endDate}
-            </Text>
-            <Text style={styles.rowStatus}>{item.status}</Text>
-          </View>
+          <Pressable
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            onPress={() => navigation.navigate("LeaveRequestDetail", { id: item.id })}
+          >
+            <View>
+              <Text style={styles.rowTitle}>
+                {item.startDate} → {item.endDate}
+              </Text>
+              {item.employeeName ? (
+                <Text style={styles.rowSubtitle}>{item.employeeName}</Text>
+              ) : null}
+            </View>
+            <Text style={styles.rowStatus}>{item.status || "—"}</Text>
+          </Pressable>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No leave requests yet.</Text>}
       />
@@ -95,6 +112,7 @@ export default function AnnualLeaveScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   heading: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
+  hint: { fontSize: 12, color: "#999", marginBottom: 4 },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -105,11 +123,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
+  rowPressed: {
+    backgroundColor: "#f5f5f5",
+  },
   rowTitle: { fontSize: 15 },
+  rowSubtitle: { fontSize: 12, color: "#999", marginTop: 2 },
   rowStatus: { fontSize: 13, color: "#888" },
   empty: { color: "#999", marginTop: 8 },
 });

@@ -8,13 +8,19 @@ import {
   TextInput,
   RefreshControl,
   Alert,
+  Pressable,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../auth/AuthContext";
 import { getPurchaseOrders, createPurchaseOrder, PurchaseOrder } from "../services/graphService";
+import type { PurchaseOrdersStackParamList } from "../navigation/AppNavigator";
+
+type NavigationProp = NativeStackNavigationProp<PurchaseOrdersStackParamList, "PurchaseOrdersList">;
 
 export default function PurchaseOrdersScreen() {
   const { getAccessToken } = useAuth();
+  const navigation = useNavigation<NavigationProp>();
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [supplier, setSupplier] = useState("");
@@ -29,6 +35,8 @@ export default function PurchaseOrdersScreen() {
     }
   }, [getAccessToken]);
 
+  // Also refreshes whenever this screen comes back into focus — e.g. after
+  // saving changes on a PO's detail screen and navigating back.
   useFocusEffect(
     useCallback(() => {
       load();
@@ -76,19 +84,23 @@ export default function PurchaseOrdersScreen() {
       <Button title="Raise PO" onPress={onSubmit} />
 
       <Text style={[styles.heading, { marginTop: 24 }]}>Recent POs</Text>
+      <Text style={styles.hint}>Tap a PO to view or edit its details.</Text>
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <Pressable
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            onPress={() => navigation.navigate("PurchaseOrderDetail", { id: item.id })}
+          >
             <Text style={styles.rowTitle}>
               {item.poNumber || item.id} · {item.supplier}
             </Text>
             <Text style={styles.rowStatus}>
-              £{item.amount.toFixed(2)} · {item.status}
+              £{typeof item.amount === "number" ? item.amount.toFixed(2) : "—"} · {item.status || "—"}
             </Text>
-          </View>
+          </Pressable>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No purchase orders yet.</Text>}
       />
@@ -99,6 +111,7 @@ export default function PurchaseOrdersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   heading: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
+  hint: { fontSize: 12, color: "#999", marginBottom: 4 },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -109,9 +122,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+  },
+  rowPressed: {
+    backgroundColor: "#f5f5f5",
   },
   rowTitle: { fontSize: 15 },
   rowStatus: { fontSize: 13, color: "#888" },
